@@ -5,13 +5,13 @@
 A guitar chord web app built with Next.js 15, TypeScript, PostgreSQL, and Clerk.
 
 ## The USP
-Unlike Ultimate Guitar, WhatTheChord lets you select the chords you know and filters songs to only show what's immediately playable for you. It also shows songs you're "one chord away" from playing.
+WhatTheChord lets you select the chords you know and filters songs to only show what's immediately playable for you. It also shows songs you're "one chord away" from playing.
 
 ## Tech Stack
 - **Frontend:** Next.js 15 (App Router) + TypeScript + Tailwind CSS + shadcn/ui
 - **Database:** PostgreSQL via Prisma ORM (hosted on Supabase)
 - **Auth:** Clerk
-- **Data:** Scraped from IndiChords using Puppeteer
+- **Data:** Scraped using Puppeteer
 
 ## Features (MVP)
 - [ ] Chord filter — select known chords, get matching songs
