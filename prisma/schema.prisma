@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Song {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  sourceUrl   String   @unique
+  language    String   @default("hindi")
+  decade      String?  
+  createdAt   DateTime @default(now())
+
+  artists     SongArtist[]
+  chords      SongChord[]
+  lyrics      LyricLine[]
+  savedBy     SavedSong[]
+}
+
+model Artist {
+  id    Int    @id @default(autoincrement())
+  name  String
+  slug  String @unique
+
+  songs SongArtist[]
+}
+
+model SongArtist {
+  songId   Int
+  artistId Int
+
+  song   Song   @relation(fields: [songId], references: [id])
+  artist Artist @relation(fields: [artistId], references: [id])
+
+  @@id([songId, artistId])
+}
+
+model Chord {
+  id   Int    @id @default(autoincrement())
+  name String @unique  
+
+  songs        SongChord[]
+  knownByUsers UserKnownChord[]
+}
+
+model SongChord {
+  songId  Int
+  chordId Int
+
+  song  Song  @relation(fields: [songId], references: [id])
+  chord Chord @relation(fields: [chordId], references: [id])
+
+  @@id([songId, chordId])
+}
+
+model LyricLine {
+  id        Int     @id @default(autoincrement())
+  songId    Int
+  lineIndex Int     
+  lyric     String  
+  chord     String? 
+
+  song Song @relation(fields: [songId], references: [id])
+}
+
+model UserKnownChord {
+  userId  String 
+  chordId Int
+
+  chord Chord @relation(fields: [chordId], references: [id])
+
+  @@id([userId, chordId])
+}
+
+model SavedSong {
+  userId String
+  songId Int
+
+  song Song @relation(fields: [songId], references: [id])
+
+  @@id([userId, songId])
+}

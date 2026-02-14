@@ -1,0 +1,24 @@
+# env files - NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# scraper progress - no need to track this
+scripts/progress.txt
+
+# puppeteer cache
+.cache/puppeteer
+
+# next.js
+.next/
+out/
+
+# node modules
+node_modules/
+
+# prisma generated
+prisma/generated/
+
+# os files
+.DS_Store
+Thumbs.db
