@@ -195,6 +195,7 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
   const [autoScroll, setAutoScroll] = useState(false)
   const [scrollSpeed, setScrollSpeed] = useState(1) // pixels per tick (tick=25ms)
   const [transpose, setTranspose] = useState(0) // semitone shift, positive = up, negative = down
+  const [showTransposeControls, setShowTransposeControls] = useState(false)
 
   // helper for inline chord rendering
   function InlineChordLine({ text }: { text: string }) {
@@ -306,29 +307,64 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
             </p>
           </div>
 
-          <div className="relative z-10 flex items-center justify-between">
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between">
             <p className="text-sm font-bold tracking-[0.2em] text-amber-500">LYRICS & CHORDS</p>
-            <div className="flex items-center gap-2">
-            <button
-              onClick={() => setAutoScroll((current) => !current)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-500"
-            >
-              <Play className="h-3.5 w-3.5" />
-              {autoScroll ? "Stop Scroll" : "Auto Scroll"}
-            </button>
-            <div className="flex items-center gap-1">
-              <label className="text-xs text-muted-foreground">Speed:</label>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={scrollSpeed}
-                onChange={(e) => setScrollSpeed(Number(e.target.value))}
-                className="h-1 w-20"
-              />
-              <span className="text-xs text-amber-500">{scrollSpeed}</span>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2 sm:mt-0">
+              <button
+                onClick={() => setAutoScroll((current) => !current)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-500"
+              >
+                <Play className="h-3.5 w-3.5" />
+                {autoScroll ? "Stop Scroll" : "Auto Scroll"}
+              </button>
+              <div className="flex items-center gap-1">
+                <label className="text-xs text-muted-foreground">Speed:</label>
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  value={scrollSpeed}
+                  onChange={(e) => setScrollSpeed(Number(e.target.value))}
+                  className="h-1 w-20"
+                />
+                <span className="text-xs text-amber-500">{scrollSpeed}</span>
+              </div>
+              <div className="hidden sm:flex items-center gap-1">
+                <label className="text-xs text-muted-foreground">Transpose:</label>
+                <button
+                  onClick={() => setTranspose((t) => t - 1)}
+                  className="inline-flex items-center justify-center h-5 w-5 rounded border border-border bg-card text-xs font-semibold hover:bg-muted"
+                >
+                  −
+                </button>
+                <span className="text-xs text-amber-500">
+                  {transpose === 0 ? 0 : transpose > 0 ? `+${transpose}` : transpose}
+                </span>
+                <button
+                  onClick={() => setTranspose((t) => t + 1)}
+                  className="inline-flex items-center justify-center h-5 w-5 rounded border border-border bg-card text-xs font-semibold hover:bg-muted"
+                >
+                  +
+                </button>
+                {transpose !== 0 && (
+                  <button
+                    onClick={() => setTranspose(0)}
+                    className="ml-2 text-xs text-muted-foreground hover:underline"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => setShowTransposeControls((v) => !v)}
+                className="sm:hidden inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-xs font-semibold"
+              >
+                Transpose
+              </button>
             </div>
-            <div className="flex items-center gap-1">
+          </div>
+          {showTransposeControls && (
+            <div className="mt-2 flex items-center gap-1 sm:hidden">
               <label className="text-xs text-muted-foreground">Transpose:</label>
               <button
                 onClick={() => setTranspose((t) => t - 1)}
@@ -354,8 +390,7 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
                 </button>
               )}
             </div>
-          </div>
-          </div>
+          )}
 
           <div className="relative z-10 mt-6 space-y-6">
             {data.lyricSections.map((section, si) => (
