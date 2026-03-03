@@ -1,7 +1,7 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
-// Hardcoded for now — we'll replace with real DB data later
+// Hardcoded for now â€” we'll replace with real DB data later
 const trendingSongs = [
   { title: "Tum Hi Ho", artist: "Arijit Singh", chords: ["Am", "C", "G", "Em"], difficulty: "Beginner", slug: "tum-hi-ho" },
   { title: "Kal Ho Naa Ho", artist: "Sonu Nigam", chords: ["G", "D", "Em", "C"], difficulty: "Intermediate", slug: "kal-ho-naa-ho" },
@@ -30,7 +30,7 @@ export function TrendingSongs() {
             <h2 className="mt-3 text-4xl font-bold">Popular right now</h2>
           </div>
           <Link
-            href="/api/songs"
+            href="/songs"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-amber-500 transition-colors"
           >
             View all library <ArrowRight className="w-4 h-4" />
@@ -42,7 +42,7 @@ export function TrendingSongs() {
           {trendingSongs.map((song) => (
             <Link
               key={song.slug}
-              href={`/api/songs/${song.slug}`}
+              href={`/songs/${song.slug}`}
               className="min-w-[240px] bg-card border border-border rounded-2xl p-5 hover:border-amber-500/50 transition-colors group flex-shrink-0"
             >
               {/* Difficulty badge */}
@@ -68,7 +68,7 @@ export function TrendingSongs() {
 
               {/* View link */}
               <p className="mt-4 text-xs text-amber-500 font-medium group-hover:underline">
-                View Song →
+                View Song â†’
               </p>
             </Link>
           ))}

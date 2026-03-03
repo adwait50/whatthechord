@@ -40,14 +40,16 @@ function extractSongId(url: string): string {
 
 function parseChordLines(rawText: string): {
   chords: string[]
-  lyricLines: { chord: string | null; lyric: string }[]
+  lyricLines: { chord: string | null; lyric: string; rawContent: string }[]
 } {
   const chordsUsed = new Set<string>()
-  const lyricLines: { chord: string | null; lyric: string }[] = []
+  const lyricLines: { chord: string | null; lyric: string; rawContent: string }[] = []
 
-  const lines = rawText.split("\n").map((l) => l.trim()).filter(Boolean)
+  const lines = rawText.split("\n")
 
-  for (const line of lines) {
+  for (const originalLine of lines) {
+    const line = originalLine
+
     // Skip navigation/UI lines
     if (
       line.startsWith("Download Indichords") ||
@@ -59,31 +61,18 @@ function parseChordLines(rawText: string): {
       continue
     }
 
-    // Check if line contains any chord markers like [Bm], [Am], [C#]
-    if (!/\[[A-G][^\]]{0,5}\]/.test(line)) {
-      // Pure lyric line with no chord
-      if (line.length > 0) {
-        lyricLines.push({ chord: null, lyric: line })
-      }
-      continue
+    // collect any chords present
+    const chordMatches = Array.from(line.matchAll(/\[([A-G][^\]]{0,5})\]/g))
+    for (const m of chordMatches) {
+      chordsUsed.add(m[1])
     }
 
-    // Split line by chord markers
-    // "[Bm]Aankhon Mein" splits into ["", "Bm", "Aankhon Mein"]
-    const parts = line.split(/\[([A-G][^\]]{0,5})\]/)
-
-    for (let i = 0; i < parts.length; i++) {
-      // Odd indices are chord names (captured groups)
-      if (i % 2 === 1) {
-        const chord = parts[i].trim()
-        const lyric = (parts[i + 1] || "").trim()
-
-        if (chord) {
-          chordsUsed.add(chord)
-          lyricLines.push({ chord, lyric })
-        }
-      }
-    }
+    // always push line, even if blank, to preserve gaps
+    lyricLines.push({
+      chord: chordMatches[0]?.[1] || null,
+      lyric: line,
+      rawContent: line,
+    })
   }
 
   return {
@@ -232,15 +221,15 @@ async function saveSong(
     },
   })
 
-  // Link artists to song
+  // Link artists to song preserving order
   await Promise.all(
-    artistRecords.map((artist) =>
+    artistRecords.map((artist, idx) =>
       prisma.songArtist.upsert({
         where: {
           songId_artistId: { songId: song.id, artistId: artist.id },
         },
-        update: {},
-        create: { songId: song.id, artistId: artist.id },
+        update: { position: idx },
+        create: { songId: song.id, artistId: artist.id, position: idx },
       })
     )
   )
@@ -266,6 +255,7 @@ async function saveSong(
       lineIndex: index,
       lyric: line.lyric,
       chord: line.chord,
+      rawContent: line.rawContent,
     })),
   })
 
@@ -310,11 +300,20 @@ async function main() {
 
   // Load already-scraped URLs and skip them
   const done = loadProgress()
-  const urls = allUrls.filter((u) => !done.has(u))
+  const remainingUrls = allUrls.filter((u) => !done.has(u))
+  const scrapeLimit = Number(process.env.SCRAPE_LIMIT || "0")
+  const urls =
+    Number.isFinite(scrapeLimit) && scrapeLimit > 0
+      ? remainingUrls.slice(0, scrapeLimit)
+      : remainingUrls
 
   console.log(`📋 Total URLs:     ${allUrls.length}`)
   console.log(`✅ Already done:   ${done.size}`)
-  console.log(`⏳ Remaining:      ${urls.length}\n`)
+  console.log(`⏳ Remaining:      ${remainingUrls.length}`)
+  if (Number.isFinite(scrapeLimit) && scrapeLimit > 0) {
+    console.log(`🧪 This run limit: ${urls.length}`)
+  }
+  console.log("")
 
   if (urls.length === 0) {
     console.log("🎸 All songs already scraped!")
@@ -364,7 +363,8 @@ async function main() {
       // 1 second delay between requests
       await new Promise((r) => setTimeout(r, 1000))
     } catch (err: any) {
-      console.log(`❌ ${err.message?.split("\n")[0]}`)
+      console.log(`❌ Error scraping ${url}`)
+      console.error(err && err.stack ? err.stack : err)
       // Don't mark failed URLs as done — they'll be retried on next run
       failed++
 

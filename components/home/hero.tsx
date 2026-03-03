@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 
 export function Hero() {
   return (
@@ -26,13 +26,13 @@ export function Hero() {
 
           {/* Subtext */}
           <p className="mt-6 text-lg text-muted-foreground max-w-lg leading-relaxed">
-            Select the chords you know — we'll instantly show you every song you can play right now.
+            Select the chords you know â€” we'll instantly show you every song you can play right now.
           </p>
 
           {/* Buttons */}
           <div className="mt-8 flex items-center gap-4">
             <Link
-              href="/api/songs"
+              href="/songs"
               className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-6 py-3 rounded-xl transition-colors"
             >
               Browse Songs
@@ -44,7 +44,7 @@ export function Hero() {
 
           {/* Social proof */}
           <p className="mt-6 text-sm text-muted-foreground">
-            🎸 2,500+ songs &nbsp;•&nbsp; 100+ chords &nbsp;•&nbsp; Free forever
+            ðŸŽ¸ 2,500+ songs &nbsp;â€¢&nbsp; 100+ chords &nbsp;â€¢&nbsp; Free forever
           </p>
 
         </div>

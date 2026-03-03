@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import { Guitar } from "lucide-react";
 import { cn } from "@/lib/utils";
-const navLinks = [{ href: "/api/songs", label: "Browse" }];
+const navLinks = [{ href: "/songs", label: "Browse" }];
 
 export function Navbar() {
   const pathname = usePathname();
@@ -15,7 +15,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm">
       {}
       {}
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="max-w-[1500px] mx-auto px-4 h-16 flex items-center justify-between">
         {}
         {}
         <Link href="/" className="flex items-center gap-2 group">
@@ -81,3 +81,4 @@ export function Navbar() {
     </header>
   );
 }
+

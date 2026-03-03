@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma"
-import { BrowseClient } from "@/app/api/songs/browse-client"
+﻿import { prisma } from "@/lib/prisma"
+import { BrowseClient } from "@/components/songs/browse-client"
 
 export default async function SongsPage() {
   // Fetch initial data on the server

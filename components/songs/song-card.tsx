@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 
 type Song = {
   id: number
@@ -11,7 +11,7 @@ type Song = {
 export function SongCard({ song }: { song: Song }) {
   return (
     <Link
-      href={`/api/songs/${song.slug}`}
+      href={`/songs/${song.slug}`}
       className="block bg-card border border-border rounded-xl p-5 hover:border-amber-500/50 transition-colors group"
     >
       <h3 className="font-bold text-base">{song.title}</h3>
@@ -36,7 +36,7 @@ export function SongCard({ song }: { song: Song }) {
       </div>
 
       <p className="mt-4 text-xs text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity">
-        View Song →
+        View Song â†’
       </p>
     </Link>
   )

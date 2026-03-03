@@ -32,6 +32,7 @@ model Artist {
 model SongArtist {
   songId   Int
   artistId Int
+  position Int   @default(0) // preserves order from source
 
   song   Song   @relation(fields: [songId], references: [id])
   artist Artist @relation(fields: [artistId], references: [id])
@@ -63,6 +64,7 @@ model LyricLine {
   lineIndex Int     
   lyric     String  
   chord     String? 
+  rawContent String? // Preserves chord markers: "[Bm]Aankhon [Am]Mein [G]Basey Ho"
 
   song Song @relation(fields: [songId], references: [id])
 }
