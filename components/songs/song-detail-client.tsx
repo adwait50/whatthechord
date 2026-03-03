@@ -96,6 +96,55 @@ function normalizeChordName(chord: string): string {
     .toUpperCase()
 }
 
+// transpose helper: shift a chord name by a number of semitones (steps can be negative)
+function transposeChord(chord: string, steps: number): string {
+  if (steps === 0) return chord
+
+  const normalized = normalizeChordName(chord)
+  const match = normalized.match(/^([A-G][#B]?)(.*)$/)
+  if (!match) {
+    return chord
+  }
+
+  let [, root, rest] = match
+  // convert flats ("B" suffix after root) to their sharp equivalents
+  const flatToSharp: Record<string, string> = {
+    DB: "C#",
+    EB: "D#",
+    GB: "F#",
+    AB: "G#",
+    BB: "A#",
+  }
+  if (root.length === 2 && root[1] === "B") {
+    root = flatToSharp[root] ?? root
+  }
+
+  const SEMITONES = [
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B",
+  ]
+
+  const idx = SEMITONES.indexOf(root)
+  if (idx === -1) {
+    return chord
+  }
+
+  let newIdx = (idx + steps) % 12
+  if (newIdx < 0) newIdx += 12
+  const newRoot = SEMITONES[newIdx]
+  return newRoot + rest
+}
+
 function ChordDiagram({ name }: { name: string }) {
   const shape = CHORD_SHAPES[normalizeChordName(name)] ?? []
   const stringLeft = (stringNumber: number) => 8 + ((stringNumber - 1) / 5) * 84
@@ -143,6 +192,10 @@ function ChordDiagram({ name }: { name: string }) {
 }
 
 export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
+  const [autoScroll, setAutoScroll] = useState(false)
+  const [scrollSpeed, setScrollSpeed] = useState(1) // pixels per tick (tick=25ms)
+  const [transpose, setTranspose] = useState(0) // semitone shift, positive = up, negative = down
+
   // helper for inline chord rendering
   function InlineChordLine({ text }: { text: string }) {
     if (text === "") {
@@ -154,7 +207,7 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
         {parts.map((part, i) =>
           part.startsWith("[") ? (
             <span key={i} className="text-amber-500 font-bold">
-              {part}
+              {`[${transposeChord(part.slice(1, -1), transpose)}]`}
             </span>
           ) : (
             <span key={i}>{part}</span>
@@ -163,8 +216,6 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
       </p>
     )
   }
-  const [autoScroll, setAutoScroll] = useState(false)
-  const [scrollSpeed, setScrollSpeed] = useState(1) // pixels per tick (tick=25ms)
 
   useEffect(() => {
     if (!autoScroll) {
@@ -185,9 +236,13 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
     return () => window.clearInterval(intervalId)
   }, [autoScroll])
 
+  const transposedChords = useMemo(() => {
+    return data.usedChords.map((c) => transposeChord(c, transpose))
+  }, [data.usedChords, transpose])
+
   const watermark = useMemo(() => {
-    return data.usedChords.slice(0, 2)
-  }, [data.usedChords])
+    return transposedChords.slice(0, 2)
+  }, [transposedChords])
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -228,9 +283,9 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
         <div className="border-t border-border bg-card/40">
           <div className="mx-auto flex w-full max-w-[1500px] items-center gap-2 px-4 py-3 lg:px-10">
             <p className="mr-2 text-xs font-bold tracking-[0.2em] text-amber-500">CHORDS USED:</p>
-            {data.usedChords.map((chord) => (
+            {transposedChords.map((chord, idx) => (
               <span
-                key={chord}
+                key={`${chord}-${idx}`}
                 className="rounded-md border border-border bg-background px-3 py-1 text-sm font-semibold"
               >
                 {chord}
@@ -273,6 +328,32 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
               />
               <span className="text-xs text-amber-500">{scrollSpeed}</span>
             </div>
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-muted-foreground">Transpose:</label>
+              <button
+                onClick={() => setTranspose((t) => t - 1)}
+                className="inline-flex items-center justify-center h-5 w-5 rounded border border-border bg-card text-xs font-semibold hover:bg-muted"
+              >
+                −
+              </button>
+              <span className="text-xs text-amber-500">
+                {transpose === 0 ? 0 : transpose > 0 ? `+${transpose}` : transpose}
+              </span>
+              <button
+                onClick={() => setTranspose((t) => t + 1)}
+                className="inline-flex items-center justify-center h-5 w-5 rounded border border-border bg-card text-xs font-semibold hover:bg-muted"
+              >
+                +
+              </button>
+              {transpose !== 0 && (
+                <button
+                  onClick={() => setTranspose(0)}
+                  className="ml-2 text-xs text-muted-foreground hover:underline"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
           </div>
 
@@ -297,7 +378,9 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
                                 style={{ width: `${item.word.length * 0.6}em` }}
                               >
                                 {item.chord && (
-                                  <div className="text-center">{item.chord}</div>
+                                  <div className="text-center">
+                                    {transposeChord(item.chord, transpose)}
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -314,7 +397,7 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
                           {/* Fallback: old display method for lines without chordWords */}
                           <div className="mb-2 flex flex-wrap gap-7 text-xl font-bold text-amber-500 ">
                             {(line.chords.length > 0 ? line.chords : [""]).map((chord, i) => (
-                              <span key={`${line.id}-${i}`}>{chord}</span>
+                              <span key={`${line.id}-${i}`}>{transposeChord(chord, transpose)}</span>
                             ))}
                           </div>
                           <p className="text-2xl font-semibold leading-snug tracking-[-0.01em] sm:text-[2rem]">
@@ -334,8 +417,8 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
           <div className="rounded-2xl border border-border bg-card p-5">
             <p className="text-xs font-bold tracking-[0.2em] text-amber-500">CHORD DIAGRAMS</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              {data.usedChords.slice(0, 4).map((chord) => (
-                <ChordDiagram key={chord} name={chord} />
+              {transposedChords.slice(0, 4).map((chord, idx) => (
+                <ChordDiagram key={`${chord}-${idx}`} name={chord} />
               ))}
             </div>
           </div>
