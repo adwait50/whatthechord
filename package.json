@@ -6,7 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "songs:scrape": "tsx scripts/scraper.ts",
+    "chords:sync": "tsx scripts/sync-chord-catalog.ts",
+    "chords:sync:dry": "tsx scripts/sync-chord-catalog.ts --dry-run",
+    "chords:sync:full": "npm run chords:sync && npm run chords:meta",
+    "chords:sync:all": "npm run chords:sync && npm run chords:meta && npm run chords:diagrams",
+    "chords:meta": "tsx scripts/sync-chord-metadata.ts",
+    "chords:meta:dry": "tsx scripts/sync-chord-metadata.ts --dry-run",
+    "chords:diagrams": "tsx scripts/sync-chord-diagrams.ts --exact",
+    "chords:diagrams:dry": "tsx scripts/sync-chord-diagrams.ts --dry-run"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.37.4",

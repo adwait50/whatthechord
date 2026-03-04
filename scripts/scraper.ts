@@ -2,7 +2,7 @@ import 'dotenv/config'
 import * as fs from "fs"
 import * as path from "path"
 import puppeteer, { Browser } from "puppeteer"
-import { PrismaClient } from "@prisma/client"
+import { Prisma, PrismaClient } from "@prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { Pool } from "pg"
 
@@ -15,6 +15,7 @@ function createPrismaClient() {
 }
 
 const prisma = createPrismaClient()
+const MAX_PARSE_RETRIES = 3
 
 // ---- HELPERS ----
 
@@ -133,7 +134,6 @@ async function parseSongPage(browser: Browser, url: string) {
     const { title, artistRaw, bodyText } = pageData
 
     if (!title || title.toLowerCase() === "indichords") {
-      await page.close()
       return null
     }
 
@@ -163,8 +163,6 @@ async function parseSongPage(browser: Browser, url: string) {
     const songId = extractSongId(url)
     const slug = `${slugify(title)}-${songId}`
 
-    await page.close()
-
     return {
       title,
       slug,
@@ -176,37 +174,120 @@ async function parseSongPage(browser: Browser, url: string) {
       lyricLines,
     }
   } catch (err) {
-    await page.close()
     throw err
+  } finally {
+    if (!page.isClosed()) {
+      await page.close().catch(() => {})
+    }
   }
 }
 
 // ---- SAVE A SONG TO DATABASE ----
 
+function isPrismaUniqueViolation(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  )
+}
+
+function isTransientScrapeError(error: unknown): boolean {
+  const message = String(error ?? "")
+  const transientPatterns = [
+    "ERR_NETWORK_CHANGED",
+    "ERR_CONNECTION_RESET",
+    "ERR_CONNECTION_CLOSED",
+    "ERR_TIMED_OUT",
+    "ERR_NAME_NOT_RESOLVED",
+    "Navigation timeout",
+    "Protocol error",
+    "Target closed",
+    "Session closed",
+  ]
+  return transientPatterns.some((pattern) => message.includes(pattern))
+}
+
+async function delay(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function parseSongPageWithRetry(browser: Browser, url: string) {
+  for (let attempt = 1; attempt <= MAX_PARSE_RETRIES; attempt++) {
+    try {
+      return await parseSongPage(browser, url)
+    } catch (error) {
+      if (!isTransientScrapeError(error) || attempt === MAX_PARSE_RETRIES) {
+        throw error
+      }
+      const backoffMs = 1200 * attempt
+      console.log(`retry ${attempt}/${MAX_PARSE_RETRIES} after transient error...`)
+      await delay(backoffMs)
+    }
+  }
+
+  return null
+}
+
+async function upsertArtistSafely(name: string) {
+  const slug = slugify(name)
+  try {
+    return await prisma.artist.upsert({
+      where: { slug },
+      update: {},
+      create: { name, slug },
+    })
+  } catch (error) {
+    if (isPrismaUniqueViolation(error)) {
+      const existing = await prisma.artist.findUnique({ where: { slug } })
+      if (existing) return existing
+    }
+    throw error
+  }
+}
+
+async function upsertChordSafely(name: string) {
+  try {
+    return await prisma.chord.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    })
+  } catch (error) {
+    if (isPrismaUniqueViolation(error)) {
+      const existing = await prisma.chord.findUnique({ where: { name } })
+      if (existing) return existing
+    }
+    throw error
+  }
+}
+
 async function saveSong(
   data: NonNullable<Awaited<ReturnType<typeof parseSongPage>>>
 ) {
-  // Upsert artists
-  const artistRecords = await Promise.all(
-    data.artists.map((name) =>
-      prisma.artist.upsert({
-        where: { slug: slugify(name) },
-        update: {},
-        create: { name, slug: slugify(name) },
+  const uniqueArtists = Array.from(
+    new Map(
+      data.artists.map((name) => {
+        const trimmed = name.trim()
+        return [slugify(trimmed), trimmed]
       })
-    )
+    ).entries()
   )
+    .filter(([slug]) => slug.length > 0)
+    .map(([, name]) => name)
 
-  // Upsert chords
-  const chordRecords = await Promise.all(
-    data.chords.map((name) =>
-      prisma.chord.upsert({
-        where: { name },
-        update: {},
-        create: { name },
-      })
-    )
-  )
+  // Upsert artists safely (handles duplicate-slug races)
+  const artistRecords: Array<{ id: number }> = []
+  for (const name of uniqueArtists) {
+    const artist = await upsertArtistSafely(name)
+    artistRecords.push(artist)
+  }
+
+  // Upsert chords safely
+  const chordRecords: Array<{ id: number }> = []
+  for (const name of data.chords) {
+    const chord = await upsertChordSafely(name)
+    chordRecords.push(chord)
+  }
 
   // Upsert song
   const song = await prisma.song.upsert({
@@ -343,7 +424,7 @@ async function main() {
     )
 
     try {
-      const data = await parseSongPage(browser, url)
+      const data = await parseSongPageWithRetry(browser, url)
 
       if (!data) {
         console.log("⚠️  skipped (could not parse)")
@@ -361,15 +442,19 @@ async function main() {
       success++
 
       // 1 second delay between requests
-      await new Promise((r) => setTimeout(r, 1000))
-    } catch (err: any) {
+      await delay(1000)
+    } catch (err: unknown) {
       console.log(`❌ Error scraping ${url}`)
-      console.error(err && err.stack ? err.stack : err)
+      if (err instanceof Error) {
+        console.error(err.stack ?? err.message)
+      } else {
+        console.error(err)
+      }
       // Don't mark failed URLs as done — they'll be retried on next run
       failed++
 
       // Wait a bit longer after an error before continuing
-      await new Promise((r) => setTimeout(r, 2000))
+      await delay(2000)
 
       // Check if browser is still alive — relaunch if it crashed
       try {

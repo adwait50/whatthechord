@@ -44,7 +44,7 @@ export function Hero() {
 
           {/* Social proof */}
           <p className="mt-6 text-sm text-muted-foreground">
-            ðŸŽ¸ 2,500+ songs &nbsp;â€¢&nbsp; 100+ chords &nbsp;â€¢&nbsp; Free forever
+            2,500+ songs - 100+ chords - Free forever
           </p>
 
         </div>

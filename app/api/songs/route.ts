@@ -5,7 +5,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   
   
-  const chordsParam = searchParams.get("chords")       
+  const chordsParam = searchParams.get("chords")
+  const chordNamesParam = searchParams.get("chordNames")
   const search = searchParams.get("search") || ""      
   const decade = searchParams.get("decade") || ""      
   const page = parseInt(searchParams.get("page") || "1")
@@ -31,14 +32,59 @@ export async function GET(request: NextRequest) {
     
     
     
-    if (chordsParam) {
-      const chordIds = chordsParam.split(",").map(Number)
-      
-      where.chords = {
-        
-        every: {
-          chordId: { in: chordIds }
+    if (chordNamesParam) {
+      const chordNames = chordNamesParam
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean)
+
+      if (chordNames.length > 0) {
+        const matchedChords = await prisma.chord.findMany({
+          where: {
+            name: { in: chordNames },
+          },
+          select: { id: true },
+        })
+
+        const chordIds = matchedChords.map((item) => item.id)
+
+        if (chordIds.length === 0) {
+          return NextResponse.json({
+            songs: [],
+            total: 0,
+            page,
+            totalPages: 0,
+          })
         }
+
+        where.AND = [
+          ...(where.AND ?? []),
+          ...chordIds.map((chordId) => ({
+            chords: {
+              some: {
+                chordId,
+              },
+            },
+          })),
+        ]
+      }
+    } else if (chordsParam) {
+      const chordIds = chordsParam
+        .split(",")
+        .map(Number)
+        .filter((id) => Number.isInteger(id))
+
+      if (chordIds.length > 0) {
+        where.AND = [
+          ...(where.AND ?? []),
+          ...chordIds.map((chordId) => ({
+            chords: {
+              some: {
+                chordId,
+              },
+            },
+          })),
+        ]
       }
     }
 

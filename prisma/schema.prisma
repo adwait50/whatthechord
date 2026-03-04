@@ -46,6 +46,45 @@ model Chord {
 
   songs        SongChord[]
   knownByUsers UserKnownChord[]
+  metadata     ChordMetadata?
+  diagram      ChordDiagram?
+}
+
+model ChordMetadata {
+  chordId        Int      @id
+  normalizedName String   @unique
+  root           String
+  quality        String
+  extension      String?
+  bassNote       String?
+  alterations    String[] @default([])
+  addTones       String[] @default([])
+  suspensions    String[] @default([])
+  isSlash        Boolean  @default(false)
+  isBasic        Boolean  @default(false)
+  isAltered      Boolean  @default(false)
+  category       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  chord Chord @relation(fields: [chordId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+}
+
+model ChordDiagram {
+  id             Int      @id @default(autoincrement())
+  chordId         Int      @unique
+  normalizedName  String
+  dots            Json
+  source          String   @default("uberchord")
+  rawChordName    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  chord Chord @relation(fields: [chordId], references: [id], onDelete: Cascade)
+
+  @@index([normalizedName])
 }
 
 model SongChord {

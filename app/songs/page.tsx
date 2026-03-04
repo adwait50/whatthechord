@@ -2,21 +2,14 @@
 import { BrowseClient } from "@/components/songs/browse-client"
 
 export default async function SongsPage() {
-  // Fetch initial data on the server
-  // This runs once when the page first loads
-  const [songs, chords] = await Promise.all([
-    prisma.song.findMany({
-      take: 12, // first page only
-      include: {
-        artists: { include: { artist: true } },
-        chords: { include: { chord: true } }
-      },
-      orderBy: { title: "asc" }
-    }),
-    prisma.chord.findMany({
-      orderBy: { name: "asc" }
-    })
-  ])
+  const songs = await prisma.song.findMany({
+    take: 12,
+    include: {
+      artists: { include: { artist: true } },
+      chords: { include: { chord: true } }
+    },
+    orderBy: { title: "asc" }
+  })
 
   // Format the data
   const formattedSongs = songs.map(song => ({
@@ -33,7 +26,6 @@ export default async function SongsPage() {
   return (
     <BrowseClient 
       initialSongs={formattedSongs} 
-      allChords={chords}
       total={songs.length}
     />
   )

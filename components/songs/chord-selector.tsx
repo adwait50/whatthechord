@@ -7,11 +7,12 @@ type Props = {
   chords: Chord[]
   selectedChords: number[]
   onToggle: (id: number) => void
+  columnsClassName?: string
 }
 
-export function ChordSelector({ chords, selectedChords, onToggle }: Props) {
+export function ChordSelector({ chords, selectedChords, onToggle, columnsClassName }: Props) {
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className={`grid gap-2 ${columnsClassName ?? "grid-cols-4"}`}>
       {chords.map(chord => {
         const isSelected = selectedChords.includes(chord.id)
         return (

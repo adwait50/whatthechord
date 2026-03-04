@@ -16,7 +16,7 @@ export function SongCard({ song }: { song: Song }) {
     >
       <h3 className="font-bold text-base">{song.title}</h3>
       <p className="text-sm text-muted-foreground mt-1">
-        {song.artists.join(", ")}
+        {song.artists.join(" - ")}
       </p>
 
       <div className="mt-4 flex flex-wrap gap-1">
