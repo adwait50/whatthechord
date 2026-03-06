@@ -140,7 +140,7 @@ function ScalesChordsDiagram({ chord }: { chord: string }) {
   return (
     <div className="flex flex-col items-center w-full">
       <div className="text-sm font-bold text-white mb-1">{chord}</div>
-      <svg width={svgWidth} height={svgHeight} style={{ display: "block" }}>
+      <svg width={svgWidth} height={svgHeight} style={{ display: "block", margin: "0 auto" }}>
 
         {/* strings (vertical lines) */}
         {frets.map((_: any, i: number) => (
@@ -370,85 +370,99 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
             </p>
           </div>
 
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between">
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-start justify-between gap-2">
             <p className="text-sm font-bold tracking-[0.2em] text-amber-500">LYRICS & CHORDS</p>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2 sm:mt-0">
-              <button
-                onClick={() => setAutoScroll((current) => !current)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-500"
-              >
-                <Play className="h-3.5 w-3.5" />
-                {autoScroll ? "Stop Scroll" : "Auto Scroll"}
-              </button>
-              <div className="flex items-center gap-1">
-                <label className="text-xs text-muted-foreground">Speed:</label>
-                <input
-                  type="range"
-                  min={1}
-                  max={10}
-                  value={scrollSpeed}
-                  onChange={(e) => setScrollSpeed(Number(e.target.value))}
-                  className="h-1 w-20"
-                />
-                <span className="text-xs text-amber-500">{scrollSpeed}</span>
+            <div className="flex flex-col gap-2 items-end">
+
+              {/* Row 1: Auto Scroll + Speed */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAutoScroll((current) => !current)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-500"
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  {autoScroll ? "Stop Scroll" : "Auto Scroll"}
+                </button>
+                <div className="inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1.5">
+                  <span className="text-xs font-semibold text-amber-500">Speed</span>
+                  <button
+                    onClick={() => setScrollSpeed((s) => Math.max(1, s - 1))}
+                    className="inline-flex items-center justify-center h-5 w-5 rounded border border-amber-500/40 bg-amber-500/20 text-xs font-bold text-amber-500 hover:bg-amber-500/30"
+                  >
+                    -
+                  </button>
+                  <span className="w-4 text-center text-xs font-bold text-amber-500">{scrollSpeed}</span>
+                  <button
+                    onClick={() => setScrollSpeed((s) => Math.min(10, s + 1))}
+                    className="inline-flex items-center justify-center h-5 w-5 rounded border border-amber-500/40 bg-amber-500/20 text-xs font-bold text-amber-500 hover:bg-amber-500/30"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              <div className="hidden sm:flex items-center gap-1">
-                <label className="text-xs text-muted-foreground">Transpose:</label>
+
+              {/* Row 2: Transpose — desktop */}
+              <div className="hidden sm:inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1.5">
+                <span className="text-xs font-semibold text-amber-500">Transpose</span>
                 <button
                   onClick={() => setTranspose((t) => t - 1)}
-                  className="inline-flex items-center justify-center h-5 w-5 rounded border border-border bg-card text-xs font-semibold hover:bg-muted"
+                  className="inline-flex items-center justify-center h-5 w-5 rounded border border-amber-500/40 bg-amber-500/20 text-xs font-bold text-amber-500 hover:bg-amber-500/30"
                 >
                   -
                 </button>
-                <span className="text-xs text-amber-500">
-                  {transpose === 0 ? 0 : transpose > 0 ? `+${transpose}` : transpose}
+                <span className="w-6 text-center text-xs font-bold text-amber-500">
+                  {transpose === 0 ? "0" : transpose > 0 ? `+${transpose}` : transpose}
                 </span>
                 <button
                   onClick={() => setTranspose((t) => t + 1)}
-                  className="inline-flex items-center justify-center h-5 w-5 rounded border border-border bg-card text-xs font-semibold hover:bg-muted"
+                  className="inline-flex items-center justify-center h-5 w-5 rounded border border-amber-500/40 bg-amber-500/20 text-xs font-bold text-amber-500 hover:bg-amber-500/30"
                 >
                   +
                 </button>
                 {transpose !== 0 && (
                   <button
                     onClick={() => setTranspose(0)}
-                    className="ml-2 text-xs text-muted-foreground hover:underline"
+                    className="ml-1 text-xs text-amber-500/70 hover:text-amber-500 hover:underline"
                   >
                     Reset
                   </button>
                 )}
               </div>
+
+              {/* Transpose toggle — mobile */}
               <button
                 onClick={() => setShowTransposeControls((v) => !v)}
-                className="sm:hidden inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-xs font-semibold"
+                className="sm:hidden inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-500"
               >
                 Transpose
               </button>
+
             </div>
           </div>
 
+          {/* Mobile transpose controls */}
           {showTransposeControls && (
-            <div className="mt-2 flex items-center gap-1 sm:hidden">
-              <label className="text-xs text-muted-foreground">Transpose:</label>
+            <div className="mt-2 inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 sm:hidden">
+              <span className="text-xs font-semibold text-amber-500">Transpose</span>
               <button
                 onClick={() => setTranspose((t) => t - 1)}
-                className="inline-flex items-center justify-center h-5 w-5 rounded border border-border bg-card text-xs font-semibold hover:bg-muted"
+                className="inline-flex items-center justify-center h-5 w-5 rounded border border-amber-500/40 bg-amber-500/20 text-xs font-bold text-amber-500 hover:bg-amber-500/30"
               >
                 -
               </button>
-              <span className="text-xs text-amber-500">
-                {transpose === 0 ? 0 : transpose > 0 ? `+${transpose}` : transpose}
+              <span className="w-6 text-center text-xs font-bold text-amber-500">
+                {transpose === 0 ? "0" : transpose > 0 ? `+${transpose}` : transpose}
               </span>
               <button
                 onClick={() => setTranspose((t) => t + 1)}
-                className="inline-flex items-center justify-center h-5 w-5 rounded border border-border bg-card text-xs font-semibold hover:bg-muted"
+                className="inline-flex items-center justify-center h-5 w-5 rounded border border-amber-500/40 bg-amber-500/20 text-xs font-bold text-amber-500 hover:bg-amber-500/30"
               >
                 +
               </button>
               {transpose !== 0 && (
                 <button
                   onClick={() => setTranspose(0)}
-                  className="ml-2 text-xs text-muted-foreground hover:underline"
+                  className="ml-1 text-xs text-amber-500/70 hover:text-amber-500 hover:underline"
                 >
                   Reset
                 </button>
