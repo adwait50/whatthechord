@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       })
 
       return NextResponse.json({
-        artists: artists.map((a) => ({
+        artists: artists.map((a: any) => ({
           id: a.id,
           name: a.name,
           songCount: a._count.songs,
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json({
-      artists: artists.map((a) => ({
+      artists: artists.map((a: any) => ({
         id: a.id,
         name: a.name,
         songCount: a._count.songs,
