@@ -6,88 +6,6 @@ import { Heart, Play, Share2 } from "lucide-react"
 
 import type { SongDetailViewModel } from "./song-detail-types"
 
-type ChordDot = {
-  string: number
-  fret: number
-}
-
-const FALLBACK_CHORD_SHAPES: Record<string, ChordDot[]> = {
-  AM: [
-    { string: 3, fret: 2 },
-    { string: 4, fret: 2 },
-    { string: 5, fret: 1 },
-  ],
-  A: [
-    { string: 3, fret: 2 },
-    { string: 4, fret: 2 },
-    { string: 5, fret: 2 },
-  ],
-  C: [
-    { string: 2, fret: 3 },
-    { string: 3, fret: 2 },
-    { string: 5, fret: 1 },
-  ],
-  D: [
-    { string: 4, fret: 2 },
-    { string: 5, fret: 3 },
-    { string: 6, fret: 2 },
-  ],
-  DM: [
-    { string: 4, fret: 2 },
-    { string: 5, fret: 3 },
-    { string: 6, fret: 1 },
-  ],
-  E: [
-    { string: 2, fret: 2 },
-    { string: 3, fret: 2 },
-    { string: 4, fret: 1 },
-  ],
-  EM: [
-    { string: 2, fret: 2 },
-    { string: 3, fret: 2 },
-  ],
-  F: [
-    { string: 1, fret: 1 },
-    { string: 2, fret: 3 },
-    { string: 3, fret: 3 },
-    { string: 4, fret: 2 },
-    { string: 5, fret: 1 },
-    { string: 6, fret: 1 },
-  ],
-  G: [
-    { string: 1, fret: 3 },
-    { string: 2, fret: 2 },
-    { string: 6, fret: 3 },
-  ],
-  BM: [
-    { string: 2, fret: 2 },
-    { string: 3, fret: 4 },
-    { string: 4, fret: 4 },
-    { string: 5, fret: 3 },
-    { string: 6, fret: 2 },
-  ],
-  B7: [
-    { string: 2, fret: 2 },
-    { string: 3, fret: 1 },
-    { string: 4, fret: 2 },
-    { string: 6, fret: 2 },
-  ],
-  "A#": [
-    { string: 2, fret: 1 },
-    { string: 3, fret: 3 },
-    { string: 4, fret: 3 },
-    { string: 5, fret: 3 },
-    { string: 6, fret: 1 },
-  ],
-  BB: [
-    { string: 2, fret: 1 },
-    { string: 3, fret: 3 },
-    { string: 4, fret: 3 },
-    { string: 5, fret: 3 },
-    { string: 6, fret: 1 },
-  ],
-}
-
 function normalizeChordName(chord: string): string {
   return chord
     .replace(/\u266F/g, "#")
@@ -96,7 +14,6 @@ function normalizeChordName(chord: string): string {
     .toUpperCase()
 }
 
-// transpose helper: shift a chord name by a number of semitones (steps can be negative)
 function transposeChord(chord: string, steps: number): string {
   if (steps === 0) return chord
 
@@ -106,8 +23,8 @@ function transposeChord(chord: string, steps: number): string {
     return chord
   }
 
-  let [, root, rest] = match
-  // convert flats ("B" suffix after root) to their sharp equivalents
+  const [, initialRoot, rest] = match
+  let root = initialRoot
   const flatToSharp: Record<string, string> = {
     DB: "C#",
     EB: "D#",
@@ -119,87 +36,229 @@ function transposeChord(chord: string, steps: number): string {
     root = flatToSharp[root] ?? root
   }
 
-  const SEMITONES = [
-    "C",
-    "C#",
-    "D",
-    "D#",
-    "E",
-    "F",
-    "F#",
-    "G",
-    "G#",
-    "A",
-    "A#",
-    "B",
-  ]
+  const SEMITONES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
   const idx = SEMITONES.indexOf(root)
-  if (idx === -1) {
-    return chord
-  }
+  if (idx === -1) return chord
 
   let newIdx = (idx + steps) % 12
   if (newIdx < 0) newIdx += 12
-  const newRoot = SEMITONES[newIdx]
-  return newRoot + rest
+  return SEMITONES[newIdx] + rest
 }
 
-function ChordDiagram({ name, shape }: { name: string; shape?: ChordDot[] }) {
-  const fallbackShape = FALLBACK_CHORD_SHAPES[normalizeChordName(name)] ?? []
-  const resolvedShape = shape && shape.length > 0 ? shape : fallbackShape
-  const stringLeft = (stringNumber: number) => 8 + ((stringNumber - 1) / 5) * 84
+/* ---------------- CHORD ENGINE ---------------- */
+
+const NOTE_INDEX: Record<string, number> = {
+  C: 0, "C#": 1, DB: 1, D: 2, "D#": 3, EB: 3, E: 4, F: 5,
+  "F#": 6, GB: 6, G: 7, "G#": 8, AB: 8, A: 9, "A#": 10, BB: 10, B: 11,
+}
+
+function parseChord(chord: string) {
+  const m = chord.match(/^([A-G])([#b]?)(m?)/)
+  if (!m) return null
+  return {
+    root: (m[1] + (m[2] || "")).toUpperCase(),
+    minor: m[3] === "m",
+  }
+}
+
+function generateChord(chord: string) {
+  const parsed = parseChord(chord)
+  if (!parsed) return null
+
+  const { root, minor } = parsed
+  const rootIndex = NOTE_INDEX[root]
+
+  // --- E-shape barre (root on low E string) ---
+  const eDiff = (() => {
+    let d = rootIndex - NOTE_INDEX["E"]
+    if (d < 0) d += 12
+    return d
+  })()
+
+  const eShapeFrets   = minor ? [0, 2, 2, 0, 0, 0] : [0, 2, 2, 1, 0, 0]
+  const eShapeFingers = minor ? [1, 3, 4, 1, 1, 1] : [1, 3, 4, 2, 1, 1]
+  const eFrets = eShapeFrets.map((f) => (f <= 0 ? f : f + eDiff))
+  const eBaseFret = eDiff === 0 ? 1 : eDiff
+  const eBarre = eDiff > 0 ? { fret: eDiff, finger: 1 } : null
+
+  // --- A-shape barre (root on A string) ---
+  const aDiff = (() => {
+    let d = rootIndex - NOTE_INDEX["A"]
+    if (d < 0) d += 12
+    return d
+  })()
+
+  // A-shape relative frets (0 = open/nut, -1 = muted)
+  const aShapeFrets   = minor ? [-1, 0, 2, 2, 1, 0] : [-1, 0, 2, 2, 2, 0]
+  const aShapeFingers = minor ? [ 0, 1, 3, 4, 2, 1] : [ 0, 1, 2, 3, 4, 0]
+  const aFrets = aShapeFrets.map((f) => (f <= 0 ? f : f + aDiff))
+  const aBaseFret = aDiff === 0 ? 1 : aDiff
+  const aBarre = aDiff > 0 ? { fret: aDiff, finger: 1 } : null
+
+  // Prefer A-shape when it sits lower on the neck (more practical)
+  const useAShape = aBaseFret <= eBaseFret && aBaseFret <= 7
+
+  if (useAShape) {
+    return {
+      frets: aFrets,
+      fingers: aShapeFingers,
+      baseFret: aBaseFret,
+      barre: aBarre,
+    }
+  }
+
+  return {
+    frets: eFrets,
+    fingers: eShapeFingers,
+    baseFret: eBaseFret,
+    barre: eBarre,
+  }
+}
+
+/* ---------------- CHORD DIAGRAM ---------------- */
+
+function ScalesChordsDiagram({ chord }: { chord: string }) {
+  const data = generateChord(chord)
+
+  if (!data) {
+    return <div className="text-xs text-muted-foreground">{chord}</div>
+  }
+
+  const { frets, fingers, baseFret, barre } = data
+  const stringLabels = ["E", "A", "D", "G", "B", "e"]
+
+  const stringSpacing = 28
+  const fretSpacing = 44
+  const startX = 40  // room for fret number label on the left
+  const startY = 12  // tight top margin
+
+  const gridWidth = 5 * stringSpacing
+  const svgWidth = startX + gridWidth + 12
+  const svgHeight = startY + 4 * fretSpacing + 20  // 20 for string labels at bottom
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-background/70 p-4">
-      <p className="text-center text-base font-bold">{name}</p>
+    <div className="flex flex-col items-center w-full">
+      <div className="text-sm font-bold text-white mb-1">{chord}</div>
+      <svg width={svgWidth} height={svgHeight} style={{ display: "block" }}>
 
-      <div className="relative mx-auto mt-3 h-36 w-32">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <span
-            key={`v-${i}`}
-            className="absolute bottom-0 top-1 w-px bg-foreground/25"
-            style={{ left: `${stringLeft(i + 1)}%` }}
+        {/* strings (vertical lines) */}
+        {frets.map((_: any, i: number) => (
+          <line
+            key={i}
+            x1={startX + i * stringSpacing}
+            y1={startY}
+            x2={startX + i * stringSpacing}
+            y2={startY + 4 * fretSpacing}
+            stroke="#4b5563"
+            strokeWidth={1.5}
           />
         ))}
 
-        {Array.from({ length: 6 }).map((_, i) => (
-          <span
-            key={`h-${i}`}
-            className="absolute left-0 right-0 h-px bg-foreground/25"
-            style={{ top: `${(i / 5) * 100}%` }}
+        {/* frets (horizontal lines) */}
+        {[0, 1, 2, 3, 4].map((f) => (
+          <line
+            key={f}
+            x1={startX}
+            y1={startY + f * fretSpacing}
+            x2={startX + gridWidth}
+            y2={startY + f * fretSpacing}
+            stroke="#4b5563"
+            strokeWidth={f === 0 && baseFret === 1 ? 5 : 1.5}
           />
         ))}
 
-        <span className="absolute left-0 right-0 top-0 h-1 rounded bg-foreground/85" />
+        {/* fret number label — centred in the first fret slot (between line 0 and line 1) */}
+        {baseFret > 1 && (
+          <text
+            x={startX - 14}
+            y={startY + fretSpacing * 0.5}
+            fill="#9ca3af"
+            fontSize="12"
+            textAnchor="end"
+            dominantBaseline="middle"
+          >
+            {baseFret}
+          </text>
+        )}
 
-        {resolvedShape.map((dot, i) => (
-          <span
-            key={`${name}-${i}`}
-            className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500"
-            style={{
-              left: `${stringLeft(dot.string)}%`,
-              top: `${(dot.fret / 5) * 100}%`,
-            }}
-          />
+        {/* barre — centred in the first fret slot */}
+        {barre && (
+          <>
+            <rect
+              x={startX - 9}
+              y={startY + fretSpacing * 0.5 - 9}
+              width={gridWidth + 18}
+              height="18"
+              rx="9"
+              fill="#f59e0b"
+            />
+            <text
+              x={startX + gridWidth / 2}
+              y={startY + fretSpacing * 0.5}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize="10"
+              fontWeight="bold"
+              fill="#000"
+            >
+              1
+            </text>
+          </>
+        )}
+
+        {/* finger dots — positioned relative to baseFret */}
+        {frets.map((fret: number, i: number) => {
+          if (fret <= 0) return null
+          if (barre && fingers[i] === 1) return null  // covered by barre pill
+
+          // slot 0 = first fret slot (between fret line 0 and 1), etc.
+          const slot = fret - baseFret
+          const cy = startY + slot * fretSpacing + fretSpacing * 0.5
+
+          return (
+            <g key={i}>
+              <circle cx={startX + i * stringSpacing} cy={cy} r="10" fill="#f59e0b" />
+              <text
+                x={startX + i * stringSpacing}
+                y={cy}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize="10"
+                fontWeight="bold"
+                fill="#000"
+              >
+                {fingers[i]}
+              </text>
+            </g>
+          )
+        })}
+
+        {/* string labels */}
+        {stringLabels.map((label, i) => (
+          <text
+            key={i}
+            x={startX + i * stringSpacing}
+            y={startY + 4 * fretSpacing + 14}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="#6b7280"
+            fontSize="11"
+          >
+            {label}
+          </text>
         ))}
-      </div>
-
-      <p className="mt-2 text-center text-[11px] tracking-[0.15em] text-muted-foreground">
-        E A D G B e
-      </p>
+      </svg>
     </div>
   )
 }
 
 export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
   const [autoScroll, setAutoScroll] = useState(false)
-  const [scrollSpeed, setScrollSpeed] = useState(1) // pixels per tick (tick=25ms)
-  const [transpose, setTranspose] = useState(0) // semitone shift, positive = up, negative = down
+  const [scrollSpeed, setScrollSpeed] = useState(1)
+  const [transpose, setTranspose] = useState(0)
   const [showTransposeControls, setShowTransposeControls] = useState(false)
-  const [apiChordShapes, setApiChordShapes] = useState<Record<string, ChordDot[]>>({})
 
-  // helper for inline chord rendering
   function InlineChordLine({ text }: { text: string }) {
     if (text === "") {
       return <p className="text-2xl font-semibold leading-snug tracking-[-0.01em] sm:text-[2rem]">&nbsp;</p>
@@ -221,9 +280,7 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
   }
 
   useEffect(() => {
-    if (!autoScroll) {
-      return
-    }
+    if (!autoScroll) return
 
     let accum = 0
     const intervalId = window.setInterval(() => {
@@ -237,52 +294,15 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
     }, 25)
 
     return () => window.clearInterval(intervalId)
-  }, [autoScroll])
+  }, [autoScroll, scrollSpeed])
 
   const transposedChords = useMemo(() => {
     return data.usedChords.map((c) => transposeChord(c, transpose))
   }, [data.usedChords, transpose])
 
   const diagramChords = useMemo(() => {
-    return Array.from(new Set(transposedChords.slice(0, 4)))
+    return Array.from(new Set(transposedChords))
   }, [transposedChords])
-
-  useEffect(() => {
-    const controller = new AbortController()
-
-    async function loadChordDiagrams() {
-      if (diagramChords.length === 0) {
-        setApiChordShapes({})
-        return
-      }
-
-      const params = new URLSearchParams({
-        names: diagramChords.join(","),
-      })
-
-      try {
-        const res = await fetch(`/api/chords/diagram?${params.toString()}`, {
-          signal: controller.signal,
-        })
-
-        if (!res.ok) {
-          if (!controller.signal.aborted) setApiChordShapes({})
-          return
-        }
-
-        const payload = (await res.json()) as { diagrams?: Record<string, ChordDot[]> }
-        if (!controller.signal.aborted) {
-          setApiChordShapes(payload.diagrams ?? {})
-        }
-      } catch {
-        if (!controller.signal.aborted) setApiChordShapes({})
-      }
-    }
-
-    void loadChordDiagrams()
-
-    return () => controller.abort()
-  }, [diagramChords])
 
   const watermark = useMemo(() => {
     return transposedChords.slice(0, 2)
@@ -339,7 +359,7 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
         </div>
       </section>
 
-      <section className="mx-auto grid w-full max-w-[1500px] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px]">
+      <section className="mx-auto grid w-full max-w-[1500px] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_560px]">
         <div className="relative border-r border-border px-4 py-8 lg:px-10">
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <p className="absolute left-8 top-6 text-[240px] font-black leading-none text-foreground/[0.03]">
@@ -406,6 +426,7 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
               </button>
             </div>
           </div>
+
           {showTransposeControls && (
             <div className="mt-2 flex items-center gap-1 sm:hidden">
               <label className="text-xs text-muted-foreground">Transpose:</label>
@@ -441,13 +462,10 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
                 <div className="space-y-4">
                   {section.lines.map((line) => (
                     <div key={line.id}>
-                      {/* If we have aligned chord-word pairs, show them with proper alignment */}
                       {line.rawContent ? (
-                        // show chords inline in same line using rawContent
                         <InlineChordLine text={line.rawContent} />
                       ) : line.chordWords && line.chordWords.length > 0 ? (
                         <div>
-                          {/* Chords line */}
                           <div className="mb-1 flex flex-wrap gap-2 text-base font-bold text-amber-500">
                             {line.chordWords.map((item, i) => (
                               <div
@@ -463,7 +481,6 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
                               </div>
                             ))}
                           </div>
-                          {/* Words line */}
                           <p className="text-2xl font-semibold leading-snug tracking-[-0.01em] sm:text-[2rem] flex flex-wrap gap-2">
                             {line.chordWords.map((item, i) => (
                               <span key={`word-${line.id}-${i}`}>{item.word}</span>
@@ -472,8 +489,7 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
                         </div>
                       ) : (
                         <>
-                          {/* Fallback: old display method for lines without chordWords */}
-                          <div className="mb-2 flex flex-wrap gap-7 text-xl font-bold text-amber-500 ">
+                          <div className="mb-2 flex flex-wrap gap-7 text-xl font-bold text-amber-500">
                             {(line.chords.length > 0 ? line.chords : [""]).map((chord, i) => (
                               <span key={`${line.id}-${i}`}>{transposeChord(chord, transpose)}</span>
                             ))}
@@ -491,16 +507,19 @@ export function SongDetailClient({ data }: { data: SongDetailViewModel }) {
           </div>
         </div>
 
-        <aside className="space-y-5 p-4 lg:p-6">
-          <div className="rounded-2xl border border-border bg-card p-5">
+        <aside className="space-y-4 p-3 lg:p-4">
+          <div className="rounded-2xl border border-border bg-card p-3">
             <p className="text-xs font-bold tracking-[0.2em] text-amber-500">CHORD DIAGRAMS</p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {transposedChords.slice(0, 4).map((chord, idx) => (
-                <ChordDiagram
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {diagramChords.map((chord, idx) => (
+                <div
                   key={`${chord}-${idx}`}
-                  name={chord}
-                  shape={apiChordShapes[normalizeChordName(chord)]}
-                />
+                  className="rounded-xl border border-border bg-background/30 py-2 px-0"
+                >
+                  <div className="flex justify-center">
+                    <ScalesChordsDiagram chord={chord} />
+                  </div>
+                </div>
               ))}
             </div>
           </div>

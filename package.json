@@ -15,7 +15,10 @@
     "chords:meta": "tsx scripts/sync-chord-metadata.ts",
     "chords:meta:dry": "tsx scripts/sync-chord-metadata.ts --dry-run",
     "chords:diagrams": "tsx scripts/sync-chord-diagrams.ts --exact",
-    "chords:diagrams:dry": "tsx scripts/sync-chord-diagrams.ts --dry-run"
+    "chords:diagrams:basic": "tsx scripts/sync-chord-diagrams.ts --exact --basic-major-minor",
+    "chords:diagrams:dry": "tsx scripts/sync-chord-diagrams.ts --dry-run",
+    "chords:scrape:scales": "tsx scripts/scrape-scales-chords.ts",
+    "chords:scrape:scales:basic": "tsx scripts/scrape-scales-chords.ts --basic-major-minor"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.37.4",

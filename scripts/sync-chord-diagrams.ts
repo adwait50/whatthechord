@@ -19,10 +19,17 @@ type ParsedDiagram = {
   rawChordName: string
 }
 
+type ParsedChordForGeneration = {
+  rootPc: number
+  bassPc: number | null
+  suffix: string
+}
+
 const UBERCHORD_API_BASE_URL = "https://api.uberchord.com"
 const REQUEST_TIMEOUT_MS = 12_000
 const FETCH_RETRIES = 3
 const CHUNK_SIZE = 20
+const OPEN_STRING_PITCH_CLASSES = [4, 9, 2, 7, 11, 4] // E A D G B E
 
 function createPrismaClient() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL })
@@ -178,6 +185,16 @@ function hasFlag(flag: string): boolean {
   return process.argv.includes(flag)
 }
 
+function isBasicMajorMinorChordName(chordName: string): boolean {
+  const normalized = normalizeChordName(chordName)
+  if (!normalized || normalized.includes("/")) return false
+
+  // After normalization, minor chords become trailing "M" (e.g. Am -> AM, C#m -> C#M).
+  // This matcher intentionally keeps only bare major/minor triad names:
+  // C, C#, Db, Dm, F#m, etc.
+  return /^([A-G])(#|B)?(M)?$/.test(normalized)
+}
+
 async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -224,9 +241,289 @@ async function fetchExact(apiChordName: string): Promise<Record<string, ParsedDi
   return parseUberchordPayload(payload)
 }
 
+const NOTE_TO_PC: Record<string, number> = {
+  C: 0,
+  "B#": 0,
+  "C#": 1,
+  Db: 1,
+  D: 2,
+  "D#": 3,
+  Eb: 3,
+  E: 4,
+  Fb: 4,
+  F: 5,
+  "E#": 5,
+  "F#": 6,
+  Gb: 6,
+  G: 7,
+  "G#": 8,
+  Ab: 8,
+  A: 9,
+  "A#": 10,
+  Bb: 10,
+  B: 11,
+  Cb: 11,
+}
+
+function parseNotePc(note: string): number | null {
+  const token = note.trim()
+  if (!token) return null
+  const normalized = token[0].toUpperCase() + (token.slice(1) || "")
+  return NOTE_TO_PC[normalized] ?? null
+}
+
+function parseChordForGeneration(chordName: string): ParsedChordForGeneration | null {
+  const compact = chordName
+    .replace(/\u266F/g, "#")
+    .replace(/\u266D/g, "b")
+    .replace(/\s+/g, "")
+
+  const [mainRaw, bassRaw = ""] = compact.split("/")
+  const match = mainRaw.match(/^([A-Ga-g])([#b]?)(.*)$/)
+  if (!match) return null
+
+  const root = `${match[1].toUpperCase()}${match[2] || ""}`
+  const rawSuffix = match[3] || ""
+  const suffix = rawSuffix === "M" ? "m" : rawSuffix
+
+  const rootPc = parseNotePc(root)
+  if (rootPc === null) return null
+
+  const bassPc = bassRaw ? parseNotePc(bassRaw) : null
+
+  return {
+    rootPc,
+    bassPc,
+    suffix,
+  }
+}
+
+function ensureInterval(intervals: Set<number>, value: number) {
+  intervals.add(((value % 12) + 12) % 12)
+}
+
+function replaceInterval(intervals: Set<number>, remove: number, add: number) {
+  intervals.delete(((remove % 12) + 12) % 12)
+  ensureInterval(intervals, add)
+}
+
+function buildChordIntervals(suffix: string): Set<number> {
+  const lower = suffix.toLowerCase()
+  const intervals = new Set<number>()
+
+  const isSus2 = /sus2/.test(lower)
+  const isSus4 = /sus4|sus(?!2)/.test(lower)
+  const isDim = /dim/.test(lower) || /o/.test(lower)
+  const isAug = /aug|\+/.test(lower)
+  const isPower = /^5$/.test(lower)
+  const isMinor = /^m(?!aj)/.test(lower) || /min/.test(lower)
+
+  ensureInterval(intervals, 0)
+
+  if (isPower) {
+    ensureInterval(intervals, 7)
+  } else if (isSus2) {
+    ensureInterval(intervals, 2)
+    ensureInterval(intervals, 7)
+  } else if (isSus4) {
+    ensureInterval(intervals, 5)
+    ensureInterval(intervals, 7)
+  } else if (isDim) {
+    ensureInterval(intervals, 3)
+    ensureInterval(intervals, 6)
+  } else if (isAug) {
+    ensureInterval(intervals, 4)
+    ensureInterval(intervals, 8)
+  } else if (isMinor) {
+    ensureInterval(intervals, 3)
+    ensureInterval(intervals, 7)
+  } else {
+    ensureInterval(intervals, 4)
+    ensureInterval(intervals, 7)
+  }
+
+  if (/maj13/.test(lower)) {
+    ensureInterval(intervals, 11)
+    ensureInterval(intervals, 2)
+    ensureInterval(intervals, 5)
+    ensureInterval(intervals, 9)
+  } else if (/m13/.test(lower)) {
+    ensureInterval(intervals, 10)
+    ensureInterval(intervals, 2)
+    ensureInterval(intervals, 5)
+    ensureInterval(intervals, 9)
+  } else if (/13/.test(lower)) {
+    ensureInterval(intervals, 10)
+    ensureInterval(intervals, 2)
+    ensureInterval(intervals, 5)
+    ensureInterval(intervals, 9)
+  } else if (/maj11/.test(lower)) {
+    ensureInterval(intervals, 11)
+    ensureInterval(intervals, 2)
+    ensureInterval(intervals, 5)
+  } else if (/m11/.test(lower)) {
+    ensureInterval(intervals, 10)
+    ensureInterval(intervals, 2)
+    ensureInterval(intervals, 5)
+  } else if (/11/.test(lower)) {
+    ensureInterval(intervals, 10)
+    ensureInterval(intervals, 2)
+    ensureInterval(intervals, 5)
+  } else if (/6\/9/.test(lower)) {
+    ensureInterval(intervals, 9)
+    ensureInterval(intervals, 2)
+  } else if (/maj9/.test(lower)) {
+    ensureInterval(intervals, 11)
+    ensureInterval(intervals, 2)
+  } else if (/m9/.test(lower)) {
+    ensureInterval(intervals, 10)
+    ensureInterval(intervals, 2)
+  } else if (/9/.test(lower)) {
+    ensureInterval(intervals, 10)
+    ensureInterval(intervals, 2)
+  }
+
+  if (/mmaj7/.test(lower) || /m\(maj7\)/.test(lower)) {
+    ensureInterval(intervals, 11)
+    intervals.delete(10)
+  } else if (/maj7/.test(lower)) {
+    ensureInterval(intervals, 11)
+    intervals.delete(10)
+  } else if (/m7b5/.test(lower)) {
+    ensureInterval(intervals, 10)
+    replaceInterval(intervals, 7, 6)
+  } else if (/dim7/.test(lower)) {
+    ensureInterval(intervals, 9)
+  } else if (/m7/.test(lower)) {
+    ensureInterval(intervals, 10)
+  } else if (/7/.test(lower)) {
+    ensureInterval(intervals, 10)
+  }
+
+  if (/m6/.test(lower) || /(?<!m)6(?!\/9)/.test(lower)) {
+    ensureInterval(intervals, 9)
+  }
+
+  for (const match of lower.matchAll(/add(2|4|6|9|11|13)/g)) {
+    const token = match[1]
+    if (token === "2" || token === "9") ensureInterval(intervals, 2)
+    if (token === "4" || token === "11") ensureInterval(intervals, 5)
+    if (token === "6" || token === "13") ensureInterval(intervals, 9)
+  }
+
+  if (/b5/.test(lower)) replaceInterval(intervals, 7, 6)
+  if (/#5/.test(lower)) replaceInterval(intervals, 7, 8)
+  if (/b9/.test(lower)) replaceInterval(intervals, 2, 1)
+  if (/#9/.test(lower)) replaceInterval(intervals, 2, 3)
+  if (/#11/.test(lower)) replaceInterval(intervals, 5, 6)
+  if (/b13/.test(lower)) replaceInterval(intervals, 9, 8)
+
+  return intervals
+}
+
+function candidateFretsForString(stringPc: number, chordPcs: Set<number>): number[] {
+  const candidates: number[] = []
+  for (let fret = 0; fret <= 5; fret += 1) {
+    const pc = (stringPc + fret) % 12
+    if (chordPcs.has(pc)) {
+      candidates.push(fret)
+    }
+  }
+  return candidates
+}
+
+function chooseFret(candidates: number[], preferPc: number | null, stringPc: number): number {
+  if (candidates.length === 0) return -1
+
+  if (preferPc !== null) {
+    const preferred = candidates.filter((fret) => ((stringPc + fret) % 12) === preferPc)
+    if (preferred.length > 0) {
+      const nonZero = preferred.find((fret) => fret > 0)
+      return nonZero ?? preferred[0]
+    }
+  }
+
+  const nonZero = candidates.find((fret) => fret > 0)
+  return nonZero ?? candidates[0]
+}
+
+function generateDotsForChord(chordName: string): ParsedDiagram | null {
+  const parsed = parseChordForGeneration(chordName)
+  if (!parsed) return null
+
+  const intervals = buildChordIntervals(parsed.suffix)
+  const chordPcs = new Set<number>()
+  for (const interval of intervals) {
+    chordPcs.add((parsed.rootPc + interval) % 12)
+  }
+
+  const candidatesByString = OPEN_STRING_PITCH_CLASSES.map((pc) => candidateFretsForString(pc, chordPcs))
+  const selected = candidatesByString.map((candidates, index) =>
+    chooseFret(candidates, index <= 1 ? parsed.rootPc : null, OPEN_STRING_PITCH_CLASSES[index])
+  )
+
+  if (parsed.bassPc !== null) {
+    let bassAssigned = false
+    for (let i = 0; i < OPEN_STRING_PITCH_CLASSES.length; i += 1) {
+      const stringPc = OPEN_STRING_PITCH_CLASSES[i]
+      const bassFret = chooseFret(candidatesByString[i], parsed.bassPc, stringPc)
+      if (bassFret === -1) continue
+      for (let j = 0; j < i; j += 1) {
+        selected[j] = -1
+      }
+      selected[i] = bassFret
+      bassAssigned = true
+      break
+    }
+    if (!bassAssigned) {
+      selected[0] = chooseFret(candidatesByString[0], parsed.rootPc, OPEN_STRING_PITCH_CLASSES[0])
+    }
+  }
+
+  const hasRoot = selected.some((fret, index) => {
+    if (fret < 0) return false
+    return ((OPEN_STRING_PITCH_CLASSES[index] + fret) % 12) === parsed.rootPc
+  })
+
+  if (!hasRoot) {
+    for (let i = 0; i < OPEN_STRING_PITCH_CLASSES.length; i += 1) {
+      const replacement = chooseFret(candidatesByString[i], parsed.rootPc, OPEN_STRING_PITCH_CLASSES[i])
+      if (replacement === -1) continue
+      selected[i] = replacement
+      break
+    }
+  }
+
+  let dots: ChordDot[] = selected
+    .map((fret, index) => ({ string: index + 1, fret }))
+    .filter((item) => Number.isInteger(item.fret) && item.fret > 0 && item.fret <= 5)
+
+  if (dots.length < 2) {
+    for (let i = 0; i < OPEN_STRING_PITCH_CLASSES.length; i += 1) {
+      if (selected[i] > 0) continue
+      const extra = candidatesByString[i].find((fret) => fret > 0)
+      if (!extra) continue
+      selected[i] = extra
+      dots = selected
+        .map((fret, index) => ({ string: index + 1, fret }))
+        .filter((item) => Number.isInteger(item.fret) && item.fret > 0 && item.fret <= 5)
+      if (dots.length >= 2) break
+    }
+  }
+
+  if (dots.length === 0) return null
+
+  return {
+    dots,
+    rawChordName: chordName,
+  }
+}
+
 async function main() {
   const dryRun = hasFlag("--dry-run")
   const exactFallback = hasFlag("--exact")
+  const generatedFallback = !hasFlag("--no-generated")
+  const basicMajorMinorOnly = hasFlag("--basic-major-minor") || hasFlag("--basic")
   const limit = parseLimitArg()
 
   const prisma = createPrismaClient()
@@ -237,17 +534,26 @@ async function main() {
       select: { id: true, name: true },
     })
 
-    const chords = limit > 0 ? allChords.slice(0, limit) : allChords
+    const basicOnlyChords = basicMajorMinorOnly
+      ? allChords.filter((chord) => isBasicMajorMinorChordName(chord.name))
+      : allChords
+    const chords = limit > 0 ? basicOnlyChords.slice(0, limit) : basicOnlyChords
 
     console.log("Syncing chord diagrams...")
     console.log(`- total chords in DB: ${allChords.length}`)
+    if (basicMajorMinorOnly) {
+      console.log(`- basic major/minor in DB: ${basicOnlyChords.length}`)
+    }
     console.log(`- target chords this run: ${chords.length}`)
     console.log(`- exact fallback: ${exactFallback ? "on" : "off"}`)
+    console.log(`- generated fallback: ${generatedFallback ? "on" : "off"}`)
+    console.log(`- basic major/minor only: ${basicMajorMinorOnly ? "yes" : "no"}`)
     console.log(`- dry run: ${dryRun ? "yes" : "no"}`)
 
     let stored = 0
     let missing = 0
     let exactHits = 0
+    let generatedHits = 0
     const missingNames: string[] = []
 
     for (let offset = 0; offset < chords.length; offset += CHUNK_SIZE) {
@@ -272,6 +578,15 @@ async function main() {
             match = exact
             source = "uberchord-exact"
             exactHits += 1
+          }
+        }
+
+        if (!match && generatedFallback) {
+          const generated = generateDotsForChord(item.inputName)
+          if (generated) {
+            match = generated
+            source = "generated"
+            generatedHits += 1
           }
         }
 
@@ -315,6 +630,9 @@ async function main() {
     console.log(`- missing diagrams: ${missing}`)
     if (exactFallback) {
       console.log(`- exact fallback hits: ${exactHits}`)
+    }
+    if (generatedFallback) {
+      console.log(`- generated fallback hits: ${generatedHits}`)
     }
 
     if (missingNames.length > 0) {

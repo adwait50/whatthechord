@@ -1,0 +1,766 @@
+
+window.onload = function() {
+  // Build a system
+  var url = window.location.search.match(/url=([^&]+)/);
+  if (url && url.length > 1) {
+    url = decodeURIComponent(url[1]);
+  } else {
+    url = window.location.origin;
+  }
+  var options = {
+  "swaggerDoc": {
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Chords API - Documentation",
+      "version": "1.0.0",
+      "description": "Chords API Documentation with Swagger.<br><br>\n                <a href=\"/\">Return to web</a><br><br>\n                Author: Rafael Alday (AldayDev)<br><br>\n                <a href=\"mailto:aldaydev@gmail.com\">Contact</a> | <a href=\"https://alday.dev\">Visit alday.dev</a>"
+    },
+    "tags": [
+      {
+        "name": "Notes",
+        "description": "Operations related to notes."
+      },
+      {
+        "name": "Chord Types",
+        "description": "Operations related to chord types."
+      },
+      {
+        "name": "Chords",
+        "description": "Operations related to chords."
+      }
+    ],
+    "servers": [
+      {
+        "url": "https://www.chords.alday.dev",
+        "description": "Oficial url"
+      },
+      {
+        "url": "https://chords-api.onrender.com",
+        "description": "Render url"
+      }
+    ],
+    "components": {
+      "schemas": {
+        "Error": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "example": "Internal server error. Please try again later."
+            },
+            "status": {
+              "type": "integer",
+              "example": 500
+            }
+          }
+        }
+      },
+      "responses": {
+        "internalServerError": {
+          "description": "Internal Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Error"
+              }
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "/v1/notes": {
+        "get": {
+          "tags": [
+            "Notes"
+          ],
+          "summary": "Get all notes.",
+          "description": "Returns a list of all notes.",
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "object",
+                          "properties": {
+                            "eng": {
+                              "type": "string",
+                              "example": "A"
+                            },
+                            "spa": {
+                              "type": "string",
+                              "example": "La"
+                            }
+                          }
+                        },
+                        "_id": {
+                          "type": "string",
+                          "example": "a"
+                        },
+                        "type": {
+                          "type": "string",
+                          "example": "natural"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Error a getting note list",
+              "content": {
+                "aplication/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  },
+                  "example": {
+                    "message": "Error at getting note list. Please try again later.",
+                    "status": 500
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v1/chord-types": {
+        "get": {
+          "tags": [
+            "Chord Types"
+          ],
+          "summary": "Get all chord types.",
+          "description": "Returns a list of all chord types.",
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "object",
+                          "properties": {
+                            "eng": {
+                              "type": "string",
+                              "example": "major"
+                            },
+                            "spa": {
+                              "type": "string",
+                              "example": "mayor"
+                            }
+                          }
+                        },
+                        "description": {
+                          "type": "object",
+                          "properties": {
+                            "eng": {
+                              "type": "string",
+                              "example": "Major chord"
+                            },
+                            "spa": {
+                              "type": "string",
+                              "example": "Acorde mayor"
+                            }
+                          }
+                        },
+                        "_id": {
+                          "type": "string",
+                          "example": "major"
+                        },
+                        "intervals": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "1",
+                            "3",
+                            "5"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Error a getting chord types list",
+              "content": {
+                "aplication/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  },
+                  "example": {
+                    "message": "Error at getting chord types list. Please try again later.",
+                    "status": 500
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v1/chord-types/{id}": {
+        "get": {
+          "tags": [
+            "Chord Types"
+          ],
+          "summary": "Get a chord type by its ID.",
+          "description": "Returns a single chord selected by its ID from params.",
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "object",
+                        "properties": {
+                          "eng": {
+                            "type": "string",
+                            "example": "major"
+                          },
+                          "spa": {
+                            "type": "string",
+                            "example": "mayor"
+                          }
+                        }
+                      },
+                      "description": {
+                        "type": "object",
+                        "properties": {
+                          "eng": {
+                            "type": "string",
+                            "example": "Major chord"
+                          },
+                          "spa": {
+                            "type": "string",
+                            "example": "Acorde mayor"
+                          }
+                        }
+                      },
+                      "_id": {
+                        "type": "string",
+                        "example": "major"
+                      },
+                      "intervals": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": [
+                          "1",
+                          "3",
+                          "5"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Incorrect format of 'chord type Id' path parameter",
+              "content": {
+                "aplication/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  },
+                  "example": {
+                    "message": "Invalid format for 'type Id' path parameter ('wrong chord Id introduced'). Expected values: 'major', 'minor', etc.",
+                    "status": 400
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Error a getting chord types list",
+              "content": {
+                "aplication/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  },
+                  "example": {
+                    "message": "Error at getting chord type by id. Please try again later.",
+                    "status": 500
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v1/chords": {
+        "get": {
+          "tags": [
+            "Chords"
+          ],
+          "summary": "Get chords.",
+          "description": "Returns a list of all chords. You can use query params to filter them by 'note' or 'type' and apply pagination using 'limit' and 'page'.",
+          "parameters": [
+            {
+              "name": "limit",
+              "in": "query",
+              "description": "The number of chords to return. Limit can be: '0' or 'all' if you want no limit, or an entire number. If there is no 'limit', default value will be '10'.",
+              "required": false,
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "example": 10
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "all"
+                    ],
+                    "example": "all"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "page",
+              "in": "query",
+              "description": "The number of page you want to show. Page must be an entire number.",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "example": 1
+              }
+            },
+            {
+              "name": "note",
+              "in": "query",
+              "description": "Filter the chord search by note ('_id' of the note)",
+              "required": false,
+              "schema": {
+                "type": "string",
+                "example": "c"
+              }
+            },
+            {
+              "name": "type",
+              "in": "query",
+              "description": "Filter the chord search by chord type ('_id' of the chord type)",
+              "required": false,
+              "schema": {
+                "type": "string",
+                "example": "major"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "integer",
+                        "example": 68
+                      },
+                      "currentPage": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "totalPages": {
+                        "type": "integer",
+                        "example": 7
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "example": 10
+                      },
+                      "data": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "object",
+                              "properties": {
+                                "eng": {
+                                  "type": "string",
+                                  "example": "C major"
+                                },
+                                "spa": {
+                                  "type": "string",
+                                  "example": "Do mayor"
+                                }
+                              }
+                            },
+                            "images": {
+                              "type": "object",
+                              "properties": {
+                                "pos1": {
+                                  "type": "string",
+                                  "example": "https://github.com/aldaydev/chords_images/blob/main/guitar-chords/c/chord-c-major-pos1.png?raw=true"
+                                }
+                              }
+                            },
+                            "_id": {
+                              "type": "string",
+                              "example": "c_major"
+                            },
+                            "notes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "eng": {
+                                    "type": "string",
+                                    "example": "C"
+                                  },
+                                  "spa": {
+                                    "type": "string",
+                                    "example": "Do"
+                                  }
+                                }
+                              }
+                            },
+                            "note": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "object",
+                                  "properties": {
+                                    "eng": {
+                                      "type": "string",
+                                      "example": "C"
+                                    },
+                                    "spa": {
+                                      "type": "string",
+                                      "example": "Do"
+                                    }
+                                  }
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "example": "natural"
+                                }
+                              }
+                            },
+                            "type": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "object",
+                                  "properties": {
+                                    "eng": {
+                                      "type": "string",
+                                      "example": "major"
+                                    },
+                                    "spa": {
+                                      "type": "string",
+                                      "example": "Do"
+                                    }
+                                  }
+                                },
+                                "description": {
+                                  "type": "object",
+                                  "properties": {
+                                    "eng": {
+                                      "type": "string",
+                                      "example": "Major chord"
+                                    },
+                                    "spa": {
+                                      "type": "string",
+                                      "example": "Acorde mayor"
+                                    }
+                                  }
+                                },
+                                "intervals": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "example": [
+                                    "1",
+                                    "3",
+                                    "5"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Incorrect format of any query parameter",
+              "content": {
+                "aplication/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  },
+                  "example": {
+                    "message": "Invalid format for 'note' query parameter ('wrong note introduced'). Expected values: 'c', 'a_sharp', 'g_flat', etc.",
+                    "status": 400
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Error getting chords",
+              "content": {
+                "aplication/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  },
+                  "example": {
+                    "message": "Error at getting chords. Please try again later.",
+                    "status": 500
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v1/chords/{id}": {
+        "get": {
+          "tags": [
+            "Chords"
+          ],
+          "summary": "Get a chord by its ID.",
+          "description": "Returns a single chord selected by its ID from params.",
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "object",
+                        "properties": {
+                          "eng": {
+                            "type": "string",
+                            "example": "C major"
+                          },
+                          "spa": {
+                            "type": "string",
+                            "example": "Do mayor"
+                          }
+                        }
+                      },
+                      "images": {
+                        "type": "object",
+                        "properties": {
+                          "pos1": {
+                            "type": "string",
+                            "example": "https://github.com/aldaydev/chords_images/blob/main/guitar-chords/c/chord-c-major-pos1.png?raw=true"
+                          }
+                        }
+                      },
+                      "_id": {
+                        "type": "string",
+                        "example": "c_major"
+                      },
+                      "notes": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "eng": {
+                              "type": "string",
+                              "example": "C"
+                            },
+                            "spa": {
+                              "type": "string",
+                              "example": "Do"
+                            }
+                          }
+                        }
+                      },
+                      "note": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "object",
+                            "properties": {
+                              "eng": {
+                                "type": "string",
+                                "example": "C"
+                              },
+                              "spa": {
+                                "type": "string",
+                                "example": "Do"
+                              }
+                            }
+                          },
+                          "type": {
+                            "type": "string",
+                            "example": "natural"
+                          }
+                        }
+                      },
+                      "type": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "object",
+                            "properties": {
+                              "eng": {
+                                "type": "string",
+                                "example": "major"
+                              },
+                              "spa": {
+                                "type": "string",
+                                "example": "Do"
+                              }
+                            }
+                          },
+                          "description": {
+                            "type": "object",
+                            "properties": {
+                              "eng": {
+                                "type": "string",
+                                "example": "Major chord"
+                              },
+                              "spa": {
+                                "type": "string",
+                                "example": "Acorde mayor"
+                              }
+                            }
+                          },
+                          "intervals": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": [
+                              "1",
+                              "3",
+                              "5"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Incorrect format of 'chord Id' path parameter",
+              "content": {
+                "aplication/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  },
+                  "example": {
+                    "message": "Invalid format for 'chord Id' path parameter ('wrong chord Id introduced'). Expected values: 'c_major', 'a_sharp_minor', 'g_flat_dim', 'f_7' etc.",
+                    "status": 400
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Error a getting chords",
+              "content": {
+                "aplication/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  },
+                  "example": {
+                    "message": "Error at getting chord by id. Please try again later.",
+                    "status": 500
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "customOptions": {}
+};
+  url = options.swaggerUrl || url
+  var urls = options.swaggerUrls
+  var customOptions = options.customOptions
+  var spec1 = options.swaggerDoc
+  var swaggerOptions = {
+    spec: spec1,
+    url: url,
+    urls: urls,
+    dom_id: '#swagger-ui',
+    deepLinking: true,
+    presets: [
+      SwaggerUIBundle.presets.apis,
+      SwaggerUIStandalonePreset
+    ],
+    plugins: [
+      SwaggerUIBundle.plugins.DownloadUrl
+    ],
+    layout: "StandaloneLayout"
+  }
+  for (var attrname in customOptions) {
+    swaggerOptions[attrname] = customOptions[attrname];
+  }
+  var ui = SwaggerUIBundle(swaggerOptions)
+
+  if (customOptions.oauth) {
+    ui.initOAuth(customOptions.oauth)
+  }
+
+  if (customOptions.preauthorizeApiKey) {
+    const key = customOptions.preauthorizeApiKey.authDefinitionKey;
+    const value = customOptions.preauthorizeApiKey.apiKeyValue;
+    if (!!key && !!value) {
+      const pid = setInterval(() => {
+        const authorized = ui.preauthorizeApiKey(key, value);
+        if(!!authorized) clearInterval(pid);
+      }, 500)
+
+    }
+  }
+
+  if (customOptions.authAction) {
+    ui.authActions.authorize(customOptions.authAction)
+  }
+
+  window.ui = ui
+}
