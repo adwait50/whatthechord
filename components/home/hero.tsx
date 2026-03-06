@@ -26,7 +26,7 @@ export function Hero() {
 
           {/* Subtext */}
           <p className="mt-6 text-lg text-muted-foreground max-w-lg leading-relaxed">
-            Select the chords you know â€” we'll instantly show you every song you can play right now.
+            Select the chords you know &mdash; we&apos;ll instantly show you every song you can play right now.
           </p>
 
           {/* Buttons */}
@@ -37,14 +37,17 @@ export function Hero() {
             >
               Browse Songs
             </Link>
-            <button className="border border-white/20 hover:border-white/40 text-white px-6 py-3 rounded-xl transition-colors">
+            <a
+              href="#how-it-works"
+              className="border border-white/20 hover:border-white/40 text-white px-6 py-3 rounded-xl transition-colors"
+            >
               How it works
-            </button>
+            </a>
           </div>
 
           {/* Social proof */}
           <p className="mt-6 text-sm text-muted-foreground">
-            2,500+ songs - 100+ chords - Free forever
+            2,500+ songs &middot; 100+ chords &middot; Free forever
           </p>
 
         </div>

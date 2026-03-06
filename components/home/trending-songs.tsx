@@ -1,7 +1,7 @@
 ﻿import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
-// Hardcoded for now â€” we'll replace with real DB data later
+// Hardcoded for now — replace with real DB data later
 const trendingSongs = [
   { title: "Tum Hi Ho", artist: "Arijit Singh", chords: ["Am", "C", "G", "Em"], difficulty: "Beginner", slug: "tum-hi-ho" },
   { title: "Kal Ho Naa Ho", artist: "Sonu Nigam", chords: ["G", "D", "Em", "C"], difficulty: "Intermediate", slug: "kal-ho-naa-ho" },
@@ -37,7 +37,7 @@ export function TrendingSongs() {
           </Link>
         </div>
 
-        {/* Cards - horizontal scroll on mobile, grid on desktop */}
+        {/* Cards — horizontal scroll on mobile, grid on desktop */}
         <div className="mt-10 flex gap-4 overflow-x-auto pb-4 scrollbar-thin">
           {trendingSongs.map((song) => (
             <Link
@@ -67,8 +67,8 @@ export function TrendingSongs() {
               </div>
 
               {/* View link */}
-              <p className="mt-4 text-xs text-amber-500 font-medium group-hover:underline">
-                View Song â†’
+              <p className="mt-4 text-xs text-amber-500 font-medium flex items-center gap-1 group-hover:underline">
+                View Song <ArrowRight className="h-3 w-3" />
               </p>
             </Link>
           ))}

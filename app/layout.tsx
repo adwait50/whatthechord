@@ -23,12 +23,9 @@ export default function RootLayout({
         className={GeistSans.variable}
         suppressHydrationWarning
       >
-        <body>
-          {}
+        <body suppressHydrationWarning>
           <Providers>
-            {}
             <Navbar />
-            {}
             <main className="min-h-screen">
               {children}
             </main>

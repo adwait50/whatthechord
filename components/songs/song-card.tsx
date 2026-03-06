@@ -1,4 +1,5 @@
 ﻿import Link from "next/link"
+import { ArrowRight } from "lucide-react"
 
 type Song = {
   id: number
@@ -35,8 +36,8 @@ export function SongCard({ song }: { song: Song }) {
         )}
       </div>
 
-      <p className="mt-4 text-xs text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity">
-        View Song â†’
+      <p className="mt-4 text-xs text-amber-500 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        View Song <ArrowRight className="h-3 w-3" />
       </p>
     </Link>
   )
