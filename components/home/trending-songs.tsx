@@ -3,10 +3,10 @@ import { ArrowRight } from "lucide-react"
 
 // Hardcoded for now — replace with real DB data later
 const trendingSongs = [
-  { title: "Tum Hi Ho", artist: "Arijit Singh", chords: ["Am", "C", "G", "Em"], difficulty: "Beginner", slug: "tum-hi-ho" },
+  { title: "Tum Hi Ho", artist: "Arijit Singh", chords: ["Am", "C", "G", "Em"], difficulty: "Beginner", slug: "tum-hi-ho-3" },
   { title: "Kal Ho Naa Ho", artist: "Sonu Nigam", chords: ["G", "D", "Em", "C"], difficulty: "Intermediate", slug: "kal-ho-naa-ho" },
   { title: "Wonderwall", artist: "Oasis", chords: ["Em7", "G", "Dsus4", "A7"], difficulty: "Beginner", slug: "wonderwall" },
-  { title: "Lag Ja Gale", artist: "Lata Mangeshkar", chords: ["Am", "F", "C", "G"], difficulty: "Beginner", slug: "lag-ja-gale" },
+  { title: "Lag Ja Gale", artist: "Lata Mangeshkar", chords: ["Am", "F", "C", "G"], difficulty: "Beginner", slug: "lag-ja-gale-215" },
   { title: "Hotel California", artist: "Eagles", chords: ["Am", "E7", "G", "D"], difficulty: "Intermediate", slug: "hotel-california" },
 ]
 

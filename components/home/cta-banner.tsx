@@ -1,6 +1,10 @@
-import Link from "next/link"
+"use client"
+
+import { useClerk } from "@clerk/nextjs"
 
 export function CtaBanner() {
+  const { openSignUp } = useClerk()
+
   return (
     <section className="py-24 px-4 border-t border-border">
       <div className="max-w-7xl mx-auto">
@@ -15,12 +19,12 @@ export function CtaBanner() {
             </p>
           </div>
 
-          <Link
-            href="/sign-up"
+          <button
+            onClick={() => openSignUp({})}
             className="shrink-0 bg-amber-500 hover:bg-amber-400 text-black font-bold px-8 py-3 rounded-xl transition-colors"
           >
             Get Started Free
-          </Link>
+          </button>
 
         </div>
       </div>

@@ -20,7 +20,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html
         lang="en"
-        className={GeistSans.variable}
+        className={`${GeistSans.variable} scroll-smooth`}
         suppressHydrationWarning
       >
         <body suppressHydrationWarning>
