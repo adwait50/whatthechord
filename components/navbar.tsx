@@ -62,14 +62,14 @@ export function Navbar() {
           ) : (
             <>
               {}
-              <SignInButton mode="modal">
+              <SignInButton mode="modal" fallbackRedirectUrl="/">
                 <button className="text-sm font-medium text-muted-foreground hover:text-white transition-colors">
                   Sign in
                 </button>
               </SignInButton>
 
               {}
-              <SignUpButton mode="modal">
+              <SignUpButton mode="modal" fallbackRedirectUrl="/">
                 <button className="text-sm font-medium bg-amber-500 hover:bg-amber-400 text-black px-4 py-1.5 rounded-lg transition-colors">
                   Sign up
                 </button>
