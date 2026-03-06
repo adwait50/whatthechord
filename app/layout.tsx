@@ -17,18 +17,18 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider
-      signInFallbackRedirectUrl="/"
-      signUpFallbackRedirectUrl="/"
-    >
+    <ClerkProvider>
       <html
         lang="en"
-        className={`${GeistSans.variable} scroll-smooth`}
+        className={GeistSans.variable}
         suppressHydrationWarning
       >
-        <body suppressHydrationWarning>
+        <body>
+          {}
           <Providers>
+            {}
             <Navbar />
+            {}
             <main className="min-h-screen">
               {children}
             </main>
